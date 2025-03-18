@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Emotion Detection</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #6b46c1, #ed64a6); /* Vibrant gradient background */
+            color: #fff;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh; /* Ensure full height for scrolling */
+            overflow-y: auto; /* Enable vertical scrolling for the body */
+            animation: fadeIn 1.2s ease-in-out; /* Smoother fade animation */
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.15); /* Slightly more opaque glass effect */
+            padding: 35px;
+            border-radius: 25px;
+            text-align: center;
+            width: 480px; /* Slightly wider for better content spacing */
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3); /* Deeper shadow for elegance */
+            backdrop-filter: blur(12px); /* Stronger glass effect */
+            border: 2px solid rgba(255, 255, 255, 0.3); /* Thicker, more visible border */
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); /* Smoother hover animation */
+            position: relative;
+            overflow: hidden; /* Prevent content overflow within container */
+            margin: 0 auto; /* Center the container horizontally */
+            max-height: 90vh; /* Limit container height for scrolling */
+            overflow-y: auto; /* Enable scrolling within the container if content exceeds max-height */
+        }
+
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .container:hover {
+            transform: scale(1.05); /* More pronounced zoom on hover */
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4); /* Enhanced shadow on hover */
+        }
+
+        video {
+            border-radius: 18px;
+            border: 4px solid #fff;
+            margin-bottom: 25px;
+            background-color: #fff;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15); /* Softer, more elegant shadow */
+            max-width: 100%;
+            height: auto;
+            animation: pulse 2.5s infinite ease-in-out; /* Smoother pulse animation */
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.5); }
+            50% { box-shadow: 0 0 0 15px rgba(255, 255, 255, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+        }
+
+        .emotion-box {
+            margin: 18px 0;
+            font-size: 20px;
+            font-weight: 500;
+            color: #f3f3f3; /* Slightly lighter for better contrast */
+            text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.3); /* Stronger text shadow */
+            line-height: 1.5; /* Improved readability */
+        }
+
+        button {
+            background: linear-gradient(45deg, #e53e3e, #fc8181); /* Vibrant red gradient */
+            color: #fff;
+            border: none;
+            padding: 14px 30px;
+            border-radius: 28px;
+            cursor: pointer;
+            margin: 8px;
+            font-size: 18px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            transition: all 0.4s ease-in-out;
+            box-shadow: 0 8px 25px rgba(229, 62, 62, 0.5); /* Stronger shadow */
+            position: relative;
+            overflow: hidden;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            z-index: 1;
+            opacity: 0;
+            transition: opacity 0.4s ease-in-out;
+        }
+
+        button:hover {
+            background: linear-gradient(45deg, #c53030, #f56565);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(229, 62, 62, 0.7); /* Enhanced hover shadow */
+        }
+
+        button:hover::before {
+            opacity: 1;
+        }
+
+        .start-btn {
+            background: linear-gradient(45deg, #48bb78, #9ae6b4); /* Vibrant green gradient */
+        }
+
+        .start-btn:hover {
+            background: linear-gradient(45deg, #38a169, #81e6d9);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(72, 187, 120, 0.7);
+        }
+
+        .upload-btn {
+            background: linear-gradient(45deg, #4a5568, #718096); /* Sleek gray gradient */
+        }
+
+        .upload-btn:hover {
+            background: linear-gradient(45deg, #2d3748, #4a5568);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(74, 85, 104, 0.7);
+        }
+
+        canvas {
+            max-width: 100%;
+            width: 420px !important; /* Slightly wider for prominence */
+            height: 220px !important; /* Taller for better visibility */
+            margin-top: 30px;
+            display: block;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15); /* Softer, more modern shadow */
+            background: rgba(255, 255, 255, 0.08); /* Slightly more opaque background */
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        canvas:hover {
+            transform: scale(1.03); /* Slight zoom on hover for interactivity */
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.2);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        input[type="file"] {
+            margin: 12px 0;
+            padding: 12px;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            background: #fff;
+            color: #333;
+            font-size: 16px;
+            width: 100%;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        input[type="file"]:focus {
+            border-color: #e53e3e;
+            box-shadow: 0 0 8px rgba(229, 62, 62, 0.3);
+            outline: none;
+        }
+
+        label {
+            font-size: 18px;
+            font-weight: 600;
+            margin-right: 12px;
+            color: #fff;
+            text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Responsive adjustments with enhanced breakpoints */
+        @media (max-width: 500px) {
+            .container {
+                width: 90%;
+                padding: 25px;
+                border-radius: 18px;
+                max-height: 85vh; /* Adjusted for mobile scrolling */
+            }
+            canvas {
+                width: 320px !important;
+                height: 180px !important;
+            }
+            video {
+                width: 250px;
+                height: 250px;
+            }
+            button {
+                padding: 12px 25px;
+                font-size: 16px;
+                border-radius: 22px;
+            }
+            .emotion-box {
+                font-size: 16px;
+                margin: 15px 0;
+            }
+            input[type="file"] {
+                margin: 10px 0;
+                padding: 10px;
+                font-size: 14px;
+                border-radius: 6px;
+            }
+            label {
+                font-size: 16px;
+                margin-right: 10px;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .container {
+                padding: 20px;
+                border-radius: 15px;
+                max-height: 80vh; /* Further adjusted for small screens */
+            }
+            canvas {
+                width: 280px !important;
+                height: 160px !important;
+            }
+            video {
+                width: 220px;
+                height: 220px;
+            }
+            button {
+                padding: 10px 20px;
+                font-size: 14px;
+                border-radius: 20px;
+            }
+            .emotion-box {
+                font-size: 14px;
+                margin: 12px 0;
+            }
+            input[type="file"] {
+                margin: 8px 0;
+                padding: 8px;
+                font-size: 12px;
+                border-radius: 5px;
+            }
+            label {
+                font-size: 14px;
+                margin-right: 8px;
+            }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+</head>
+<body>
+    <div class="container">
+        <video id="video" width="300" height="300" autoplay class="hidden"></video>
+        <div id="uploadSection">
+            <label for="videoUpload">Upload Video:</label>
+            <input type="file" id="videoUpload" accept="video/*" style="margin: 5px;">
+            <label for="audioUpload">Upload Audio:</label>
+            <input type="file" id="audioUpload" accept="audio/*" style="margin: 5px;">
+            <button class="upload-btn" onclick="uploadFiles()">Upload Files</button>
+        </div>
+        <button id="startButton" class="start-btn" onclick="startLiveDetection()">Start Live Detection</button>
+        <button id="stopButton" class="hidden" onclick="stopLiveDetection()">Stop Live Detection</button>
+        <div class="emotion-box">Video Emotion: (<span id="video_emotion">-</span>) (Confidence: <span id="video_confidence">0%</span>%)</div>
+        <div class="emotion-box">Audio Emotion: (<span id="audio_emotion">-</span>) (Confidence: <span id="audio_confidence">0%</span>%)</div>
+        <div class="emotion-box">Final Emotion: <span id="final_emotion">-</span></div>
+        <canvas id="liveChart"></canvas>
+    </div>
+
+    <script>
+        const socket = io.connect('http://127.0.0.1:5000');
+        const video = document.getElementById('video');
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const startButton = document.getElementById('startButton');
+        const stopButton = document.getElementById('stopButton');
+        let is_running = false;
+        let stream;
+        let chart;
+
+        // Initialize Chart.js with updated ID
+        const ctxChart = document.getElementById('liveChart').getContext('2d');
+        try {
+            chart = new Chart(ctxChart, {
+                type: 'bar',
+                data: {
+                    labels: ['Video', 'Audio'],
+                    datasets: [{
+                        label: 'Confidence (%)',
+                        data: [0, 0],
+                        backgroundColor: ['rgba(54, 162, 235, 0.7)', 'rgba(255, 99, 132, 0.7)'],
+                        borderColor: ['rgba(54, 162, 235, 1)', 'rgba(255, 99, 132, 1)'],
+                        borderWidth: 2,
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: { display: true, text: 'Confidence (%)', font: { size: 14, weight: 'bold' } },
+                            ticks: { color: '#e6e6e6', font: { size: 12 } }
+                        },
+                        x: {
+                            title: { display: true, text: 'Source', font: { size: 14, weight: 'bold' } },
+                            ticks: { color: '#e6e6e6', font: { size: 12 } }
+                        }
+                    },
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: '#e6e6e6', font: { size: 14 } } }
+                    },
+                    animation: { duration: 1000, easing: 'easeInOutQuad' }
+                }
+            });
+            console.log('Chart initialized successfully');
+        } catch (error) {
+            console.error('Chart initialization failed:', error);
+        }
+
+        // SocketIO debugging
+        socket.on('connect', () => console.log('Connected to server'));
+        socket.on('connect_error', (error) => console.error('Connection error:', error));
+        socket.on('disconnect', () => console.log('Disconnected from server'));
+
+        // Access webcam
+        function startLiveDetection() {
+            if (!is_running) {
+                navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                    .then(s => {
+                        stream = s;
+                        video.srcObject = stream;
+                        video.classList.remove('hidden');
+                        is_running = true;
+                        sendFrame();
+                        socket.emit('start_detection', { message: 'Live detection started' });
+                        startButton.classList.add('hidden');
+                        stopButton.classList.remove('hidden');
+                    })
+                    .catch(error => {
+                        console.error('Error accessing webcam:', error);
+                        alert('Failed to start webcam. Please check permissions or try again.');
+                    });
+            }
+        }
+
+        // Stop live detection
+        function stopLiveDetection() {
+            if (is_running) {
+                socket.emit('stop_detection', { message: 'Live detection stopped' });
+                is_running = false;
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                    video.srcObject = null;
+                    video.classList.add('hidden');
+                    stopButton.classList.add('hidden');
+                    startButton.classList.remove('hidden');
+                }
+                console.log('Stop detection requested');
+            }
+        }
+
+        // Send video frames
+        function sendFrame() {
+            if (video.srcObject && is_running) {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const frame = canvas.toDataURL('image/jpeg');
+                socket.emit('video_frame', frame);
+                console.log('Frame sent');
+                requestAnimationFrame(sendFrame);
+            } else if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+                video.classList.add('hidden');
+                stopButton.classList.add('hidden');
+                startButton.classList.remove('hidden');
+                console.log('Webcam stream stopped');
+            }
+        }
+
+        // Upload files
+        function uploadFiles() {
+            const videoFile = document.getElementById('videoUpload').files[0];
+            const audioFile = document.getElementById('audioUpload').files[0];
+
+            if (videoFile) {
+                const videoReader = new FileReader();
+                videoReader.onload = function(e) {
+                    socket.emit('upload_video', e.target.result);
+                };
+                videoReader.readAsDataURL(videoFile);
+            }
+            if (audioFile) {
+                const audioReader = new FileReader();
+                audioReader.onload = function(e) {
+                    socket.emit('upload_audio', e.target.result);
+                };
+                audioReader.readAsDataURL(audioFile);
+            }
+        }
+
+        // Receive emotion updates
+        socket.on('emotion_update', data => {
+            console.log('Received data:', data);
+            if (data) {
+                document.getElementById('video_emotion').textContent = data.video_emotion || '-';
+                document.getElementById('video_confidence').textContent = (data.video_confidence * 100).toFixed(2) || '0';
+                document.getElementById('audio_emotion').textContent = data.audio_emotion || '-';
+                document.getElementById('audio_confidence').textContent = (data.audio_confidence * 100).toFixed(2) || '0';
+                document.getElementById('final_emotion').textContent = data.final_emotion || '-';
+
+                chart.data.datasets[0].data = [
+                    data.video_confidence * 100 || 0,
+                    data.audio_confidence * 100 || 0
+                ];
+                chart.update();
+                console.log('Chart updated with:', chart.data.datasets[0].data);
+            } else {
+                console.error('Invalid data received:', data);
+            }
+        });
+
+        // Handle start detection response
+        socket.on('detection_started', data => {
+            console.log('Detection started:', data.message);
+            is_running = true;
+            startLiveDetection(); // Ensure video starts if not already running
+        });
+
+        // Handle stop detection response
+        socket.on('detection_stopped', data => {
+            is_running = false;
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+                video.classList.add('hidden');
+                stopButton.classList.add('hidden');
+                startButton.classList.remove('hidden');
+            }
+            alert(data.message);
+            console.log('Detection stopped: ' + data.message);
+        });
+
+        socket.on('error', data => console.error('Server error:', data.message));
+
+        // Start live detection on page load
+        window.onload = startLiveDetection;
+    </script>
+</body>
+</html>
